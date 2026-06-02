@@ -113,7 +113,7 @@ async def help_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
         f"⚙️ **پارامترهای پرکاربرد:**\n"
         f"`key=123` → کلید رمز\n"
         f"`count=5000` → تعداد کاراکترهای مورد استفاده\n"
-        f"`way=\"+\"` → ترتیب چیدمان کاراکترها\n"
+        f"`way='+'` → ترتیب چیدمان کاراکترها\n"
         f"`mode=\"#\"` → فقط خروجی رمز\n"
         f"`mode=\"!\"` → کلید تصادفی\n"
         f"`class=\"name\"` → استفاده از کلاس ذخیره‌شده\n\n"
