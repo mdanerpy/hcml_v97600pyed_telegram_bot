@@ -16,7 +16,7 @@ from hcml_core import load_chinese_chars, build_cipher_map, encrypt_text, decryp
 from hcml_processor import HCMLProcessor
 
 # ========== تنظیمات ==========
-TOKEN = "8324641811:AAF-PhEKNavtFlN8_trkmzOPHmLbf8COkE0"
+TOKEN = "BOT_TOKEN"
 
 # مسیر فایل‌ها
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
