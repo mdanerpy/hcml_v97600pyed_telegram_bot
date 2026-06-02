@@ -1,401 +1,197 @@
 #!/usr/bin/env python3
-# Telegram Bot for Hanzi Cipher Markup Language (HCML)
-# @HCML_Bot
+# HCML Telegram Bot - فقط واسطه
 
 import os
-import logging
-import asyncio
-from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup
-from telegram.ext import Application, CommandHandler, MessageHandler, CallbackQueryHandler, filters, ContextTypes
-from telegram.constants import ParseMode
+import sys
 import tempfile
 from datetime import datetime
-import json
+import re
 
-from hcml_core import load_chinese_chars, build_cipher_map, encrypt_text, decrypt_text
+# مسیرها
+BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+sys.path.insert(0, BASE_DIR)
+
+# ایمپورت HCML
+from hcml_core import load_chinese_chars
 from hcml_processor import HCMLProcessor
 
-# ========== تنظیمات ==========
-TOKEN = os.environ.get("TOKEN")
-# مسیر فایل‌ها
-BASE_DIR = os.path.dirname(os.path.abspath(__file__))
-CHINESE_CHARS_FILE = os.path.join(BASE_DIR, "Characters_Chinese_97600.txt")
-CLASSES_FILE = os.path.join(BASE_DIR, "HCML_Classes.json")
+# تلگرام
+from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup
+from telegram.ext import Application, CommandHandler, MessageHandler, filters, ContextTypes
+from telegram.constants import ParseMode
 
-# لاگینگ
-logging.basicConfig(
-    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
-    level=logging.INFO
-)
-logger = logging.getLogger(__name__)
+TOKEN = "8324641811:AAF-PhEKNavtFlN8_trkmzOPHmLbf8COkE0"
 
-# بارگذاری کاراکترهای چینی
-try:
-    with open(CHINESE_CHARS_FILE, "r", encoding="utf-8") as f:
-        chinese_chars = list(f.read())
-    chinese_chars = [c for c in chinese_chars if c.strip()]
-    logger.info(f"✅ {len(chinese_chars)} کاراکتر چینی بارگذاری شد")
-except Exception as e:
-    logger.error(f"❌ خطا در بارگذاری کاراکترها: {e}")
-    chinese_chars = []
+# بارگذاری کاراکترها
+with open(os.path.join(BASE_DIR, "Characters_Chinese_97600.txt"), "r", encoding="utf-8") as f:
+    chinese_chars = [c for c in f.read() if c.strip()]
 
-# ========== توابع کمکی ==========
-def get_processor():
-    return HCMLProcessor(chinese_chars) if chinese_chars else None
+processor = HCMLProcessor(chinese_chars)
 
-def format_result(text: str, is_encrypted: bool) -> str:
-    """格式化 نتیجه برای نمایش زیبا"""
-    border = "🔷" * 20
-    title = "🔐 متن رمزنگاری شده" if is_encrypted else "🔓 متن رمزگشایی شده"
-    return f"""
-{border}
-{title}
-{border}
+# پسوندهای مجاز برای فایل
+TEXT_EXTENSIONS = {'.txt', '.json', '.xml', '.html', '.htm', '.js', '.ts', '.css', '.scss', '.py', '.csv', '.yaml', '.yml', '.ini', '.cfg', '.md', '.log', '.sql', '.hcml'}
 
-`{text[:4000]}`
+def save_output(content: str) -> str:
+    """ذخیره خروجی در فایل موقت"""
+    fd, path = tempfile.mkstemp(suffix=".hcml", text=True)
+    with os.fdopen(fd, 'w', encoding='utf-8') as f:
+        f.write(content)
+    return path
 
-{border}
-📊 آمار: {len(text)} کاراکتر
-🕐 زمان: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}
-"""
-
-# ========== هندلرهای فرمان ==========
-async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    """فرمان /start - خوش‌آمدگویی"""
-    user = update.effective_user
-    welcome_text = f"""
-✨ **به ربات HCML خوش آمدید** ✨
-
-سلام {user.first_name}! 👋
-
-این ربات، **Hanzi Cipher Markup Language** را پیاده‌سازی کرده است - یک روش خلاقانه برای رمزنگاری متن با استفاده از کاراکترهای چینی!
-
-🎯 **قابلیت‌ها:**
-• رمزنگاری متن به کاراکترهای چینی
-• رمزگشایی متن‌های رمز شده
-• پشتیبانی از کلاس‌های سفارشی
-• تنظیمات پیشرفته (key, count, way)
-
-📝 **نحوه استفاده:**
-
-1️⃣ **رمزنگاری ساده:**
-`<E>متن شما</E>`
-
-2️⃣ **رمزگشایی:**
-`<D>کاراکترهای چینی</D>`
-
-3️⃣ **با تنظیمات پیشرفته:**
-`<E key=42 way="-" count=5000>متن محرمانه</E>`
-
-4️⃣ **تعریف کلاس:**
-`<E class="secret" key=123>متن</E>`
-
-5️⃣ **حالت زیبا (mode="#"):**
-`<E mode="#">متن</E>` (فقط خروجی رمز)
-
-🎮 **دکمه‌های زیر را امتحان کنید!**
-
-📚 راهنما: /help
-💡 مثال: /example
-📊 وضعیت: /status
-"""
-
+async def start(update: Update, context):
     keyboard = [
-        [InlineKeyboardButton("🔐 رمزنگاری سریع", callback_data="quick_encrypt")],
-        [InlineKeyboardButton("🔓 رمزگشایی سریع", callback_data="quick_decrypt")],
-        [InlineKeyboardButton("📚 مثال‌ها", callback_data="examples")],
-        [InlineKeyboardButton("⚙️ تنظیمات پیشرفته", callback_data="settings")],
-        [InlineKeyboardButton("ℹ️ درباره", callback_data="about")]
+        [InlineKeyboardButton("🔐 راهنما", callback_data="help")],
     ]
-    reply_markup = InlineKeyboardMarkup(keyboard)
-
     await update.message.reply_text(
-        welcome_text,
+        "سلام! من ربات HCML هستم.\n\n"
+        "می‌توانید:\n"
+        "• متن حاوی `<E>` یا `<D>` بفرستید\n"
+        "• فایل متنی بفرستید\n\n"
+        "من متن رو پردازش می‌کنم و نتیجه رو برمی‌گردونم.",
         parse_mode=ParseMode.MARKDOWN,
-        reply_markup=reply_markup
+        reply_markup=InlineKeyboardMarkup(keyboard)
     )
 
-async def help_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    """فرمان /help - راهنمای کامل"""
-    help_text = """
-📖 **راهنمای کامل HCML**
-
-**تگ‌ها:**
-• `<E>` - رمزنگاری (Encrypt)
-• `<D>` - رمزگشایی (Decrypt)
-
-**ویژگی‌ها:**
-• `class` - نام کلاس برای ذخیره تنظیمات
-• `count` - تعداد کاراکترهای چینی (پیش‌فرض: 3000)
-• `key` - کلید رمز (پیش‌فرض: 0)
-• `way` - روش چیدمان (+, -, %n, *n)
-• `mode` - حالت ویژه (# فقط خروجی، ! کلید تصادفی)
-• `tokens` - جداکننده‌ها (پیش‌فرض: { و })
-
-**مثال‌های پیشرفته:**
-
-1. استفاده از کلید سفارشی:
-`<E key=12345>Hello World!</E>`
-
-2. با کلاس و ذخیره‌سازی:
-`<E class="mysecret" key=999 way="-">پیام مخفی</E>`
-
-3. رمزگشایی با همان کلاس:
-`<D class="mysecret">...کاراکترهای چینی...</D>`
-
-4. حالت زیبا (فقط خروجی):
-`<E mode="#">سلام دنیا</E>`
-
-5. کلید تصادفی:
-`<E mode="!">متن تصادفی</E>`
-
-💡 **نکته:** می‌توانید چندین تگ را در یک پیام ترکیب کنید!
-"""
-    await update.message.reply_text(help_text, parse_mode=ParseMode.MARKDOWN)
-
-async def example_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    """فرمان /example - نمایش مثال‌ها"""
-    examples = [
-        ("🔐 مثال ساده", "<E>سلام دنیا!</E>"),
-        ("🔓 رمزگشایی", "<D>䷀䷁䷂䷃䷄䷅䷆䷇䷈䷉</D>"),
-        ("⚙️ با کلید سفارشی", "<E key=42 way=\"-\">متن مخفی</E>"),
-        ("📁 با کلاس", "<E class=\"topsecret\" key=777>اطلاعات محرمانه</E>"),
-        ("🎲 کلید تصادفی", "<E mode=\"!\">هر بار متفاوت</E>")
-    ]
-
-    for title, example in examples:
-        keyboard = [[InlineKeyboardButton("🔄 امتحان کن", callback_data=f"try_{example[:30]}")]]
-        reply_markup = InlineKeyboardMarkup(keyboard)
-        await update.message.reply_text(
-            f"*{title}*\n\n`{example}`",
-            parse_mode=ParseMode.MARKDOWN,
-            reply_markup=reply_markup
-        )
-        await asyncio.sleep(0.5)
-
-async def status_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    """فرمان /status - وضعیت سیستم"""
-    status_text = f"""
-📊 **وضعیت سیستم HCML**
-
-✅ **وضعیت:** فعال
-📚 **کاراکترهای چینی:** {len(chinese_chars):,}
-🗂 **فایل کلاس‌ها:** {"✅" if os.path.exists(CLASSES_FILE) else "❌"}
-
-🔧 **تنظیمات پیش‌فرض:**
-• count: 3000
-• key: 0
-• way: "+"
-• mode: ""
-
-💡 **نکات:**
-• حداکثر طول متن: 4096 کاراکتر
-• پشتیبانی از یونیکد کامل
-• ذخیره خودکار کلاس‌ها
-"""
-    await update.message.reply_text(status_text, parse_mode=ParseMode.MARKDOWN)
-
-# ========== هندلر پیام‌ها ==========
-async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    """پردازش پیام‌های دریافتی"""
+async def handle_text(update: Update, context):
     text = update.message.text
     if not text:
         return
-
-    processor = get_processor()
-    if not processor:
-        await update.message.reply_text("❌ خطا: سیستم آماده نیست!")
+    
+    # پردازش با HCML
+    result = processor.process(text)
+    
+    if result == text:
+        await update.message.reply_text("❌ تگ `<E>` یا `<D>` پیدا نشد.")
         return
+    
+    # نمایش نتیجه ساده
+    await send_result(update, result)
 
-    # ارسال پیام در حال پردازش
-    processing_msg = await update.message.reply_text("⏳ در حال پردازش...")
+async def handle_file(update: Update, context):
+    """پردازش فایل دریافتی"""
+    doc = update.message.document
+    if not doc:
+        return
+    
+    # بررسی پسوند
+    ext = os.path.splitext(doc.file_name)[1].lower()
+    if ext not in TEXT_EXTENSIONS:
+        await update.message.reply_text(f"❌ پسوند {ext} پشتیبانی نمی‌شود.\nپسوندهای مجاز: {', '.join(TEXT_EXTENSIONS)}")
+        return
+    
+    # دانلود فایل
+    file = await doc.get_file()
+    file_content = await file.download_as_bytearray()
+    text = file_content.decode('utf-8')
+    
+    # پردازش
+    result = processor.process(text)
+    
+    if result == text:
+        await update.message.reply_text("❌ تگ `<E>` یا `<D>` در فایل پیدا نشد.")
+        return
+    
+    # ذخیره خروجی برای ارسال فایل
+    context.user_data['last_output'] = result
+    
+    await send_result(update, result, filename=doc.file_name)
 
-    try:
-        # پردازش متن
-        result = processor.process(text)
+async def send_result(update: Update, result: str, filename: str = None):
+    """ارسال نتیجه به کاربر"""
+    now = datetime.now()
+    
+    # تاریخ و زمان
+    date_str = now.strftime("%Y/%m/%d")
+    time_str = now.strftime("%H:%M")
+    weekday = ["دوشنبه", "سه‌شنبه", "چهارشنبه", "پنج‌شنبه", "جمعه", "شنبه", "یک‌شنبه"][now.weekday()]
+    
+    footer = f"\n\n📅 {date_str} | {weekday} | 🕐 {time_str}"
+    
+    # ساخت متن خروجی
+    output_text = f"{result}{footer}"
+    
+    keyboard = InlineKeyboardMarkup([
+        [
+            InlineKeyboardButton("📋 کپی متن", callback_data=f"copy_{result[:100]}"),
+            InlineKeyboardButton("🗑 پاک کردن", callback_data="clear"),
+        ],
+        [InlineKeyboardButton("📁 ارسال فایل HCML", callback_data="send_file")]
+    ])
+    
+    # ذخیره برای ارسال فایل
+    context.user_data['last_output_raw'] = result
+    context.user_data['last_output_path'] = save_output(result)
+    
+    await update.message.reply_text(
+        output_text,
+        reply_markup=keyboard
+    )
 
-        # اگر نتیجه با ورودی متفاوت است (پردازش شده)
-        if result != text:
-            # تشخیص نوع پردازش (رمزنگاری یا رمزگشایی)
-            is_encrypted = "<E" in text and result.count("䷀") > 0
-            
-            # نمایش نتیجه
-            formatted = format_result(result[:3000], is_encrypted)
-            
-            # اضافه کردن دکمه‌های عملیاتی
-            keyboard = [
-                [InlineKeyboardButton("📋 کپی متن", callback_data=f"copy_{result[:50]}")],
-                [InlineKeyboardButton("🔄 رمزگشایی معکوس", callback_data="reverse")],
-                [InlineKeyboardButton("💾 ذخیره در کلاس", callback_data="save_class")]
-            ]
-            reply_markup = InlineKeyboardMarkup(keyboard)
-            
-            await processing_msg.edit_text(
-                formatted,
-                parse_mode=ParseMode.MARKDOWN,
-                reply_markup=reply_markup
-            )
-        else:
-            # اگر تگی وجود نداشت، راهنمایی نشان بده
-            await processing_msg.edit_text(
-                "❓ **هیچ تگ معتبری یافت نشد!**\n\n"
-                "برای رمزنگاری از `<E>متن شما</E>` استفاده کنید.\n"
-                "برای رمزگشایی از `<D>...کاراکترهای چینی...</D>` استفاده کنید.\n\n"
-                "راهنمای کامل: /help",
-                parse_mode=ParseMode.MARKDOWN
-            )
-
-    except Exception as e:
-        logger.error(f"Error: {e}")
-        await processing_msg.edit_text(f"❌ خطا: {str(e)[:200]}\n\nلطفاً متن خود را بررسی کنید.")
-
-# ========== هندلر دکمه‌ها ==========
-async def button_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    """پردازش کلیک روی دکمه‌ها"""
+async def button_callback(update: Update, context):
     query = update.callback_query
     await query.answer()
-
+    
     data = query.data
+    
+    if data == "clear":
+        await query.message.delete()
+    
+    elif data == "send_file":
+        path = context.user_data.get('last_output_path')
+        if path and os.path.exists(path):
+            with open(path, 'rb') as f:
+                await query.message.reply_document(
+                    document=f,
+                    filename=f"output_{datetime.now().strftime('%Y%m%d_%H%M%S')}.hcml"
+                )
+    
+    elif data.startswith("copy_"):
+        # فقط تایید کپی - کاربر خودش کپی می‌کنه
+        await query.answer("✅ متن آماده کپی است!", show_alert=True)
+    
+    elif data == "help":
+        help_text = """📖 **راهنمای سریع**
 
-    if data == "quick_encrypt":
-        await query.edit_message_text(
-            "🔐 **رمزنگاری سریع**\n\n"
-            "لطفاً متنی که می‌خواهید رمزنگاری شود را ارسال کنید.\n\n"
-            "مثال: `سلام دنیا!`",
-            parse_mode=ParseMode.MARKDOWN
-        )
-        context.user_data['mode'] = 'encrypt'
+**رمزنگاری:**
+`<E>متن شما</E>`
 
-    elif data == "quick_decrypt":
-        await query.edit_message_text(
-            "🔓 **رمزگشایی سریع**\n\n"
-            "لطفاً متن رمزنگاری شده (کاراکترهای چینی) را ارسال کنید.\n\n"
-            "مثال: `䷀䷁䷂䷃`",
-            parse_mode=ParseMode.MARKDOWN
-        )
-        context.user_data['mode'] = 'decrypt'
+**رمزگشایی:**
+`<D>کاراکترهای چینی</D>`
 
-    elif data == "examples":
-        examples_text = """
-📚 **مثال‌های کاربردی:**
+**پارامترها:**
+• `key=123` - کلید رمز
+• `way="-"` - روش چیدمان
+• `count=5000` - تعداد کاراکترها
+• `class="name"` - کلاس ذخیره شده
+• `mode="#"` - فقط خروجی
 
-1️⃣ **پیام ساده:**
-`<E>Hello World!</E>`
+**مثال:**
+`<E key=42 way="-" mode="#">متن مخفی</E>`
 
-2️⃣ **متن فارسی:**
-`<E key=123>سلام ایران</E>`
+می‌توانید فایل‌های `.txt`، `.json`، `.py` و... را هم ارسال کنید."""
+        await query.edit_message_text(help_text, parse_mode=ParseMode.MARKDOWN)
 
-3️⃣ **رمزگشایی:**
-`<D>䷀䷁䷂䷃䷄䷅䷆䷇䷈䷉</D>`
+async def help_command(update: Update, context):
+    help_text = """📖 **راهنمای HCML**
 
-4️⃣ **استفاده از کلاس:**
-`<E class="personal" key=456>پیام شخصی</E>`
+`<E>متن</E>` - رمزنگاری
+`<D>متن</D>` - رمزگشایی
+`<E key=123>متن</E>` - با کلید
 
-✅ **کافی است یکی از این مثال‌ها را کپی کرده و ارسال کنید!**
-"""
-        keyboard = [[InlineKeyboardButton("🔙 بازگشت", callback_data="back_to_start")]]
-        await query.edit_message_text(
-            examples_text,
-            parse_mode=ParseMode.MARKDOWN,
-            reply_markup=InlineKeyboardMarkup(keyboard)
-        )
+فایل‌های متنی هم می‌توانید بفرستید."""
+    await update.message.reply_text(help_text, parse_mode=ParseMode.MARKDOWN)
 
-    elif data == "settings":
-        settings_text = """
-⚙️ **تنظیمات پیشرفته:**
-
-می‌توانید از این پارامترها استفاده کنید:
-
-• `key` - کلید عددی (مثلاً key=42)
-• `way` - روش چیدمان (+, -, %2, *3)
-• `count` - تعداد کاراکترها (1000 تا 97600)
-• `mode` - حالت ویژه (# یا !)
-
-**مثال ترکیبی:**
-`<E key=999 way="%3" count=5000 mode="#">متن پیشرفته</E>`
-"""
-        keyboard = [[InlineKeyboardButton("🔙 بازگشت", callback_data="back_to_start")]]
-        await query.edit_message_text(
-            settings_text,
-            parse_mode=ParseMode.MARKDOWN,
-            reply_markup=InlineKeyboardMarkup(keyboard)
-        )
-
-    elif data == "about":
-        about_text = """
-ℹ️ **درباره HCML Bot**
-
-**نسخه:** 1.0.0
-**HCML نسخه:** 97600
-
-این ربات، پیاده‌سازی **Hanzi Cipher Markup Language** است - یک زبان نشانه‌گذاری برای رمزنگاری متن با استفاده از کاراکترهای چینی.
-
-🎯 **ویژگی‌ها:**
-• رمزنگاری یکطرفه و برگشت‌پذیر
-• پشتیبانی از 97,600 کاراکتر چینی
-• کلاس‌های قابل ذخیره‌سازی
-• تنظیمات پیشرفته رمزنگاری
-
-👨‍💻 **منبع:** گیت هاب
-📝 **ساخته شده با:** Python + python-telegram-bot
-
-✨ **از استفاده شما سپاسگزاریم!**
-"""
-        keyboard = [[InlineKeyboardButton("🔙 بازگشت", callback_data="back_to_start")]]
-        await query.edit_message_text(
-            about_text,
-            parse_mode=ParseMode.MARKDOWN,
-            reply_markup=InlineKeyboardMarkup(keyboard)
-        )
-
-    elif data == "back_to_start":
-        keyboard = [
-            [InlineKeyboardButton("🔐 رمزنگاری سریع", callback_data="quick_encrypt")],
-            [InlineKeyboardButton("🔓 رمزگشایی سریع", callback_data="quick_decrypt")],
-            [InlineKeyboardButton("📚 مثال‌ها", callback_data="examples")],
-            [InlineKeyboardButton("⚙️ تنظیمات پیشرفته", callback_data="settings")],
-            [InlineKeyboardButton("ℹ️ درباره", callback_data="about")]
-        ]
-        await query.edit_message_text(
-            "✨ **منوی اصلی HCML Bot** ✨\n\nلطفاً یکی از گزینه‌های زیر را انتخاب کنید:",
-            reply_markup=InlineKeyboardMarkup(keyboard)
-        )
-
-    elif data.startswith("try_"):
-        example_text = data[4:]
-        await query.message.reply_text(
-            f"✅ مثال ارسال شد:\n\n`{example_text}`\n\nدر حال پردازش...",
-            parse_mode=ParseMode.MARKDOWN
-        )
-        # ایجاد پیام جدید با همان مثال
-        await handle_message(update, context)
-
-# ========== تابع اصلی ==========
 def main():
-    """راه‌اندازی ربات"""
-    if not chinese_chars:
-        print("❌ خطا: فایل کاراکترهای چینی یافت نشد!")
-        print(f"مسیر مورد نظر: {CHINESE_CHARS_FILE}")
-        return
-
-    print("🚀 راه‌اندازی ربات HCML...")
-    print(f"📚 تعداد کاراکترها: {len(chinese_chars):,}")
-    print(f"🤖 توکن: {TOKEN[:10]}...")
-
-    # ایجاد برنامه
-    application = Application.builder().token(TOKEN).build()
-
-    # اضافه کردن هندلرها
-    application.add_handler(CommandHandler("start", start))
-    application.add_handler(CommandHandler("help", help_command))
-    application.add_handler(CommandHandler("example", example_command))
-    application.add_handler(CommandHandler("status", status_command))
-    application.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, handle_message))
-    application.add_handler(CallbackQueryHandler(button_callback))
-
-    # راه‌اندازی
-    print("✅ ربات آماده است! در حال اجرا...")
-    application.run_polling(allowed_updates=Update.ALL_TYPES)
+    app = Application.builder().token(TOKEN).build()
+    
+    app.add_handler(CommandHandler("start", start))
+    app.add_handler(CommandHandler("help", help_command))
+    app.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, handle_text))
+    app.add_handler(MessageHandler(filters.Document.ALL, handle_file))
+    app.add_handler(CallbackQueryHandler(button_callback))
+    
+    print("✅ ربات روشن شد")
+    app.run_polling()
 
 if __name__ == "__main__":
     main()
