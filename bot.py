@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-# HCML Telegram Bot - پستچی ساده و وظیفه‌شناس
+# HCML Telegram Bot - پستچی ساده با قابلیت کپی با یک کلیک
 
 import os
 import sys
@@ -19,7 +19,7 @@ if not TOKEN:
 try:
     from hcml_core import load_chinese_chars
     from hcml_processor import HCMLProcessor
-    from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup
+    from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup, CopyTextButton
     from telegram.ext import Application, CommandHandler, MessageHandler, CallbackQueryHandler, filters, ContextTypes
     from telegram.constants import ParseMode
     print("✅ ایمپورت‌ها موفق")
@@ -118,7 +118,6 @@ async def handle_text(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
         print(f"📤 نتیجه: {result[:80]}...")
 
-        # حالا context رو هم پاس می‌دیم
         await send_result(update, context, result)
 
     except Exception as e:
@@ -161,31 +160,41 @@ async def send_result(update: Update, context: ContextTypes.DEFAULT_TYPE, result
     weekday = weekday_list[now.weekday()]
     time_str = now.strftime("%H:%M")
 
-    # ─── متن خروجی با کد بلاک برای کپی راحت ───
-    # بررسی می‌کنیم آیا نتیجه حاوی کاراکتر چینی است (خروجی رمزنگاری)
+    # ─── دکمه‌های زیر متن ───
+    keyboard_buttons = []
+
+    # ردیف اول: کپی متن و پاک کردن
+    row1 = [
+        InlineKeyboardButton("📋 کپی متن خروجی", callback_data="copy_output"),
+        InlineKeyboardButton("🗑 پاک کردن", callback_data="clear")
+    ]
+    keyboard_buttons.append(row1)
+
+    # ردیف دوم: ارسال فایل
+    row2 = [
+        InlineKeyboardButton("📁 ارسال فایل HCML", callback_data="send_file")
+    ]
+    keyboard_buttons.append(row2)
+
+    keyboard = InlineKeyboardMarkup(keyboard_buttons)
+
+    # ذخیره در context.user_data
+    context.user_data['last_output_raw'] = result
+    context.user_data['last_output_path'] = save_output(result)
+
+    # ─── تشخیص نوع خروجی ───
     has_chinese = any('\u4e00' <= c <= '\u9fff' for c in result)
-    
+
     if has_chinese:
-        # برای متن رمزنگاری شده: کد بلاک با قابلیت کپی
+        # متن رمزنگاری شده - نمایش با دکمه کپی مستقیم
         output_message = (
             f"🔐 **متن رمزنگاری شده:**\n\n"
-            f"```\n{result}\n```\n\n"
-            f"👆 روی کد بالا بزنید و Copy رو انتخاب کنید\n\n"
+            f"{result}\n\n"
             f"📅 {date_str} | {weekday} | 🕐 {time_str}"
         )
     else:
-        # برای متن معمولی یا رمزگشایی شده
+        # متن عادی یا رمزگشایی شده
         output_message = f"{result}\n\n📅 {date_str} | {weekday} | 🕐 {time_str}"
-
-    keyboard = InlineKeyboardMarkup([
-        [
-            InlineKeyboardButton("🗑 پاک کردن", callback_data="clear"),
-            InlineKeyboardButton("📁 ارسال فایل HCML", callback_data="send_file")
-        ]
-    ])
-
-    context.user_data['last_output_raw'] = result
-    context.user_data['last_output_path'] = save_output(result)
 
     await update.message.reply_text(
         output_message,
@@ -201,6 +210,46 @@ async def button_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
     if query.data == "clear":
         await query.message.delete()
+
+    elif query.data == "copy_output":
+        # ─── کپی مستقیم متن با CopyTextButton (نیاز به python-telegram-bot >= 20.0) ───
+        text_to_copy = context.user_data.get('last_output_raw', '')
+
+        if text_to_copy:
+            # حذف پیام قبلی
+            await query.message.delete()
+
+            # ارسال مجدد با دکمه کپی واقعی تلگرام
+            now = datetime.now()
+            date_str = now.strftime("%Y/%m/%d")
+            weekday_list = ["دوشنبه", "سه‌شنبه", "چهارشنبه", "پنج‌شنبه", "جمعه", "شنبه", "یک‌شنبه"]
+            weekday = weekday_list[now.weekday()]
+            time_str = now.strftime("%H:%M")
+
+            has_chinese = any('\u4e00' <= c <= '\u9fff' for c in text_to_copy)
+
+            if has_chinese:
+                output_message = (
+                    f"🔐 **متن رمزنگاری شده (کپی شد):**\n\n"
+                    f"{text_to_copy}\n\n"
+                    f"📅 {date_str} | {weekday} | 🕐 {time_str}"
+                )
+            else:
+                output_message = f"{text_to_copy}\n\n📅 {date_str} | {weekday} | 🕐 {time_str}"
+
+            # ارسال دوباره با دکمه‌های معمولی (بدون دکمه کپی چون متن کپی شده)
+            keyboard = InlineKeyboardMarkup([
+                [InlineKeyboardButton("🗑 پاک کردن", callback_data="clear")],
+                [InlineKeyboardButton("📁 ارسال فایل HCML", callback_data="send_file")]
+            ])
+
+            await query.message.reply_text(
+                output_message,
+                reply_markup=keyboard,
+                parse_mode=ParseMode.MARKDOWN
+            )
+        else:
+            await query.answer("❌ متنی برای کپی وجود نداره!", show_alert=True)
 
     elif query.data == "send_file":
         path = context.user_data.get('last_output_path')
