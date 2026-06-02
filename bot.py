@@ -9,6 +9,7 @@ from datetime import datetime
 
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 sys.path.insert(0, BASE_DIR)
+INTRO_IMAGE = os.path.join(BASE_DIR, "HCML_Page.png")
 
 TOKEN = os.environ.get("BOT_TOKEN")
 if not TOKEN:
