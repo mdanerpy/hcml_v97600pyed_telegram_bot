@@ -1,0 +1,9 @@
+HCML_Telegram_Bot/
+├── bot.py                 # فایل اصلی ربات
+├── hcml_core.py          # الگوریتم اصلی رمزنگاری
+├── hcml_parser.py        # parsing تگ‌ها
+├── hcml_processor.py     # پردازنده اصلی
+├── Characters_Chinese_97600.txt  # دیتابیس کاراکترها
+├── HCML_Classes.json     # ذخیره کلاس‌ها
+├── requirements.txt      # وابستگی‌ها
+└── README.md            # مستندات
