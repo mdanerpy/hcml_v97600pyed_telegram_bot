@@ -16,8 +16,7 @@ from hcml_core import load_chinese_chars, build_cipher_map, encrypt_text, decryp
 from hcml_processor import HCMLProcessor
 
 # ========== تنظیمات ==========
-TOKEN = "BOT_TOKEN"
-
+TOKEN = os.environ.get("TOKEN")
 # مسیر فایل‌ها
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 CHINESE_CHARS_FILE = os.path.join(BASE_DIR, "Characters_Chinese_97600.txt")
