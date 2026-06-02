@@ -73,76 +73,75 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
             await update.message.reply_photo(
                 photo=img,
                 caption=(
-                    f"✨ **به HCML Bot خوش اومدی!** ✨\n\n"
-                    f"🔐 **HCML (Hanzi Cipher Markup Language)** یک زبان رمزنگاری متنی مبتنی بر کاراکترهای چینی است.\n\n"
-                    f"🤖 این ربات رابط کاربری موتور HCML است.\n"
-                    f"پیام یا فایل را دریافت می‌کند و نتیجه را برمی‌گرداند.\n\n"
-                    f"📝 **شروع سریع:**\n"
-                    f"• `<E>متن شما</E>` → رمزنگاری\n"
-                    f"• `<D>متن رمز</D>` → رمزگشایی\n"
-                    f"• ارسال فایل‌های متنی برای پردازش مستقیم\n\n"
-                    f"⚡ **ویژگی‌ها:**\n"
-                    f"• کلیدهای سفارشی\n"
-                    f"• پشتیبانی از فایل‌های متنی\n"
-                    f"• خروجی قابل کپی\n"
-                    f"• تولید فایل HCML\n"
-                    f"• استفاده از 97,600 کاراکتر چینی\n\n"
-                    f"📚 /help | 💡 /example | 📊 /status"
-                )
+                    "✨ **به HCML Bot خوش اومدی!** ✨\n\n"
+                    "🔐 **HCML (Hanzi Cipher Markup Language)** یک زبان رمزنگاری متنی مبتنی بر کاراکترهای چینی است.\n\n"
+                    "🤖 این ربات رابط کاربری موتور HCML است.\n"
+                    "پیام یا فایل را دریافت می‌کند و نتیجه را برمی‌گرداند.\n\n"
+                    "📝 **شروع سریع:**\n"
+                    "• `<E>متن شما</E>` → رمزنگاری\n"
+                    "• `<D>متن رمز</D>` → رمزگشایی\n"
+                    "• ارسال فایل‌های متنی برای پردازش مستقیم\n\n"
+                    "⚡ **ویژگی‌ها:**\n"
+                    "• کلیدهای سفارشی\n"
+                    "• پشتیبانی از فایل‌های متنی\n"
+                    "• خروجی قابل کپی\n"
+                    "• تولید فایل HCML\n"
+                    "• استفاده از 97,600 کاراکتر چینی\n\n"
+                    "📚 /help | 💡 /example | 📊 /status"
+                ),
                 parse_mode=ParseMode.MARKDOWN
             )
     else:
-        # اگه عکس نبود، فقط متن رو بفرست (مثل قبل)
         await update.message.reply_text(
-            f"✨ **به ربات HCML خوش اومدی!** ✨\n\n"
-            f"من یه پستچی ساده‌ام. متن یا فایل رو می‌گیرم، می‌دم به ماشین رمزنگار و نتیجه رو برمی‌گردونم.\n\n"
-            f"📝 **روش استفاده:**\n"
-            f"• `<E>متن</E>` ← رمزنگاری\n"
-            f"• `<D>متن</D>` ← رمزگشایی\n"
-            f"• فایل متنی هم می‌تونی بفرستی\n\n"
-            f"📚 /help | 💡 /example | 📊 /status",
+            "✨ **به ربات HCML خوش اومدی!** ✨\n\n"
+            "من یه پستچی ساده‌ام. متن یا فایل رو می‌گیرم، می‌دم به ماشین رمزنگار و نتیجه رو برمی‌گردونم.\n\n"
+            "📝 **روش استفاده:**\n"
+            "• `<E>متن</E>` ← رمزنگاری\n"
+            "• `<D>متن</D>` ← رمزگشایی\n"
+            "• فایل متنی هم می‌تونی بفرستی\n\n"
+            "📚 /help | 💡 /example | 📊 /status",
             parse_mode=ParseMode.MARKDOWN
         )
 
 async def help_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
     await update.message.reply_text(
-        f"📖 **راهنمای HCML**\n\n"
-        f"🔐 **تگ‌های اصلی:**\n"
-        f"`<E>متن</E>` → رمزنگاری\n"
-        f"`<D>متن</D>` → رمزگشایی\n\n"
-        f"⚙️ **پارامترهای پرکاربرد:**\n"
-        f"`key=123` → کلید رمز\n"
-        f"`count=5000` → تعداد کاراکترهای مورد استفاده\n"
-        f"`way='+'` → ترتیب چیدمان کاراکترها\n"
-        f"`mode=\"#\"` → فقط خروجی رمز\n"
-        f"`mode=\"!\"` → کلید تصادفی\n"
-        f"`class=\"name\"` → استفاده از کلاس ذخیره‌شده\n\n"
-        f"📝 **نمونه:**\n"
-        f"`<E key=123 mode=\"#\">سلام دنیا</E>`\n\n"
-        f"📂 فایل‌های متنی نیز قابل پردازش هستند.\n\n"
-        f"💡 برای مشاهده مثال‌های بیشتر از دستور /example استفاده کنید.",
+        "📖 **راهنمای HCML**\n\n"
+        "🔐 **تگ‌های اصلی:**\n"
+        "`<E>متن</E>` → رمزنگاری\n"
+        "`<D>متن</D>` → رمزگشایی\n\n"
+        "⚙️ **پارامترهای پرکاربرد:**\n"
+        "`key=123` → کلید رمز\n"
+        "`count=5000` → تعداد کاراکترهای مورد استفاده\n"
+        "`way='+'` → ترتیب چیدمان کاراکترها\n"
+        "`mode='#'` → فقط خروجی رمز\n"
+        "`mode='!'` → کلید تصادفی\n"
+        "`class='name'` → استفاده از کلاس ذخیره‌شده\n\n"
+        "📝 **نمونه:**\n"
+        "`<E key=123 mode='#'>سلام دنیا</E>`\n\n"
+        "📂 فایل‌های متنی نیز قابل پردازش هستند.\n\n"
+        "💡 برای مشاهده مثال‌های بیشتر از دستور /example استفاده کنید.",
         parse_mode=ParseMode.MARKDOWN
     )
 
 
 async def example_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
     await update.message.reply_text(
-        f"💡 **نمونه‌های HCML**\n\n"
-        f"🔐 رمزنگاری ساده:\n"
-        f"`<E>سلام دنیا</E>`\n\n"
-        f"🔑 رمزنگاری با کلید:\n"
-        f"`<E key=42>متن مخفی</E>`\n\n"
-        f"📤 فقط خروجی رمز:\n"
-        f"`<E mode=\"#\">متن من</E>`\n\n"
-        f"🎲 کلید تصادفی:\n"
-        f"`<E mode=\"!\">پیام محرمانه</E>`\n\n"
-        f"📚 استفاده از کلاس:\n"
-        f"`<E class=\"mycipher\">متن</E>`\n\n"
-        f"⚙️ تنظیم تعداد کاراکترها:\n"
-        f"`<E key=123 count=5000>متن</E>`\n\n"
-        f"🔓 رمزگشایی:\n"
-        f"`<D>متن رمز شده</D>`\n\n"
-        f"📂 همچنین می‌توانید فایل‌های متنی را مستقیماً ارسال کنید.",
+        "💡 **نمونه‌های HCML**\n\n"
+        "🔐 رمزنگاری ساده:\n"
+        "`<E>سلام دنیا</E>`\n\n"
+        "🔑 رمزنگاری با کلید:\n"
+        "`<E key=42>متن مخفی</E>`\n\n"
+        "📤 فقط خروجی رمز:\n"
+        "`<E mode='#'>متن من</E>`\n\n"
+        "🎲 کلید تصادفی:\n"
+        "`<E mode='!'>پیام محرمانه</E>`\n\n"
+        "📚 استفاده از کلاس:\n"
+        "`<E class='mycipher'>متن</E>`\n\n"
+        "⚙️ تنظیم تعداد کاراکترها:\n"
+        "`<E key=123 count=5000>متن</E>`\n\n"
+        "🔓 رمزگشایی:\n"
+        "`<D>متن رمز شده</D>`\n\n"
+        "📂 همچنین می‌توانید فایل‌های متنی را مستقیماً ارسال کنید.",
         parse_mode=ParseMode.MARKDOWN
     )
 
@@ -170,7 +169,6 @@ async def handle_text(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
         print(f"📩 متن دریافت شد: {user_text[:80]}...")
 
-        # ارسال مستقیم به پردازشگر
         result = processor.process(user_text)
 
         print(f"📤 نتیجه: {result[:80]}...")
@@ -217,23 +215,9 @@ async def send_result(update: Update, context: ContextTypes.DEFAULT_TYPE, result
     weekday = weekday_list[now.weekday()]
     time_str = now.strftime("%H:%M")
 
-    # ─── تشخیص نوع خروجی ───
-    has_chinese = any('\u4e00' <= c <= '\u9fff' for c in result)
+    # خروجی ساده - بدون کاراکترهای مشکل‌دار مارک‌داون
+    output_message = f"`{result}`\n\n📅 {date_str} | {weekday} | 🕐 {time_str}"
 
-    if has_chinese:
-        # خروجی رمزنگاری شده → بین `` ` `` قرار می‌گیره
-        output_message = (
-            "<hcml>\n"
-            f"`{result}`\n"
-            "</hcml>\n\n"
-            "||@hcml_v97600py_tel_bot||\n"
-            f"{date_str} | {weekday} | {time_str}"
-        )
-    else:
-        # خروجی رمزگشایی شده یا عادی
-        output_message = f"<hcml>\n`{result}`\n</hcml>\n\n||@hcml_v97600py_tel_bot||\n{date_str} | {weekday} | {time_str}"
-
-    # دکمه‌ها (فقط پاک کردن و ارسال فایل - بدون کپی)
     keyboard = InlineKeyboardMarkup([
         [
             InlineKeyboardButton("🗑 پاک کردن", callback_data="clear"),
@@ -241,16 +225,14 @@ async def send_result(update: Update, context: ContextTypes.DEFAULT_TYPE, result
         ]
     ])
 
-    # ذخیره برای ارسال فایل
     context.user_data['last_output_raw'] = result
     context.user_data['last_output_path'] = save_output(result)
 
-    # ─── ریپلای به پیام کاربر (مهم!) ───
     await update.message.reply_text(
         output_message,
         reply_markup=keyboard,
         parse_mode=ParseMode.MARKDOWN,
-        reply_to_message_id=update.message.message_id  # ← این خط ریپلای می‌کنه
+        reply_to_message_id=update.message.message_id
     )
 
 # ─── دکمه‌ها ──────────────────────────────────────────────
