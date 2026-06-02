@@ -149,14 +149,14 @@ async def example_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
 async def status_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
     await update.message.reply_text(
-        f"📊 **HCML Engine Status**\n\n"
-        f"🟢 وضعیت ربات: آنلاین\n"
-        f"🔐 موتور رمزنگاری: فعال\n"
+        "📊 **HCML Engine Status**\n\n"
+        "🟢 وضعیت ربات: آنلاین\n"
+        "🔐 موتور رمزنگاری: فعال\n"
         f"📚 کاراکترهای چینی: {len(chinese_chars):,}\n"
-        f"🏷️ نسخه: HCML v97600\n"
-        f"🐍 Runtime: Python\n"
-        f"⚡ آماده پردازش متن و فایل\n\n"
-        f"🚀 All Systems Operational"
+        "🏷️ نسخه: HCML v97600\n"
+        "🐍 Runtime: Python\n"
+        "⚡ آماده پردازش متن و فایل\n\n"
+        "🚀 All Systems Operational"
     )
 
 
@@ -223,15 +223,15 @@ async def send_result(update: Update, context: ContextTypes.DEFAULT_TYPE, result
     if has_chinese:
         # خروجی رمزنگاری شده → بین `` ` `` قرار می‌گیره
         output_message = (
-            f"<hcml>\n"
+            "<hcml>\n"
             f"`{result}`\n"
-            f"</hcml>\n\n"
-            f">||@hcml_v97600py_tel_bot||\n"
+            "</hcml>\n\n"
+            "||@hcml_v97600py_tel_bot||\n"
             f"{date_str} | {weekday} | {time_str}"
         )
     else:
         # خروجی رمزگشایی شده یا عادی
-        output_message = f"<hcml>\n`{result}`\n</hcml>\n\n>||@hcml_v97600py_tel_bot||\n{date_str} | {weekday} | {time_str}"
+        output_message = f"<hcml>\n`{result}`\n</hcml>\n\n||@hcml_v97600py_tel_bot||\n{date_str} | {weekday} | {time_str}"
 
     # دکمه‌ها (فقط پاک کردن و ارسال فایل - بدون کپی)
     keyboard = InlineKeyboardMarkup([
