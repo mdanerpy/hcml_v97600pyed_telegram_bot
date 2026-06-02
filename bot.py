@@ -166,14 +166,14 @@ async def send_result(update: Update, context: ContextTypes.DEFAULT_TYPE, result
     if has_chinese:
         # خروجی رمزنگاری شده → بین `` ` `` قرار می‌گیره
         output_message = (
-            f"🔐 **خروجی رمزنگاری:**\n\n"
-            f"`{result}`\n\n"
-            f"👆 روی متن بالا بزنید تا کپی بشه\n\n"
-            f"📅 {date_str} | {weekday} | 🕐 {time_str}"
+            f"**<hcml>**\n"
+            f"`{result}`\n"
+            f"**</hcml>**\n"
+            f" {date_str} | {weekday} | {time_str}"
         )
     else:
         # خروجی رمزگشایی شده یا عادی
-        output_message = f"🔓 **خروجی:**\n\n`{result}`\n\n📅 {date_str} | {weekday} | 🕐 {time_str}"
+        output_message = f"**<hcml>**\n`{result}`\n</hcml>\n {date_str} | {weekday} | {time_str}"
 
     # دکمه‌ها (فقط پاک کردن و ارسال فایل - بدون کپی)
     keyboard = InlineKeyboardMarkup([
