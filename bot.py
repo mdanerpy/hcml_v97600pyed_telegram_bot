@@ -216,7 +216,7 @@ async def send_result(update: Update, context: ContextTypes.DEFAULT_TYPE, result
     time_str = now.strftime("%H:%M")
 
     # خروجی ساده - بدون کاراکترهای مشکل‌دار مارک‌داون
-    output_message = f"<!DOCTYPE hcml v97600>\n\n`{result}`\n\n{date_str} | {weekday} | {time_str}"
+    output_message = f"<!DOCTYPE hcml v97600>\n\n`{result}`\n\n< {date_str} | {weekday} | {time_str} >"
 
     keyboard = InlineKeyboardMarkup([
         [
