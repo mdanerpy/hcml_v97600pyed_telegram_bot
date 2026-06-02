@@ -152,7 +152,7 @@ async def handle_file(update: Update, context: ContextTypes.DEFAULT_TYPE):
         traceback.print_exc()
         await update.message.reply_text("❌ یه مشکلی در خوندن فایل پیش اومد.")
 
-# ─── فرمت‌بندی و ارسال نتیجه (context رو اینجا اضافه کردم) ─
+# ─── فرمت‌بندی و ارسال نتیجه ─────────────────────────────
 
 async def send_result(update: Update, context: ContextTypes.DEFAULT_TYPE, result: str):
     now = datetime.now()
@@ -161,20 +161,37 @@ async def send_result(update: Update, context: ContextTypes.DEFAULT_TYPE, result
     weekday = weekday_list[now.weekday()]
     time_str = now.strftime("%H:%M")
 
-    output_text = f"{result}\n\n📅 {date_str} | {weekday} | 🕐 {time_str}"
+    # ─── متن خروجی با کد بلاک برای کپی راحت ───
+    # بررسی می‌کنیم آیا نتیجه حاوی کاراکتر چینی است (خروجی رمزنگاری)
+    has_chinese = any('\u4e00' <= c <= '\u9fff' for c in result)
+    
+    if has_chinese:
+        # برای متن رمزنگاری شده: کد بلاک با قابلیت کپی
+        output_message = (
+            f"🔐 **متن رمزنگاری شده:**\n\n"
+            f"```\n{result}\n```\n\n"
+            f"👆 روی کد بالا بزنید و Copy رو انتخاب کنید\n\n"
+            f"📅 {date_str} | {weekday} | 🕐 {time_str}"
+        )
+    else:
+        # برای متن معمولی یا رمزگشایی شده
+        output_message = f"{result}\n\n📅 {date_str} | {weekday} | 🕐 {time_str}"
 
     keyboard = InlineKeyboardMarkup([
         [
-            InlineKeyboardButton("📋 کپی متن", callback_data="copy"),
-            InlineKeyboardButton("🗑 پاک کردن", callback_data="clear")
-        ],
-        [InlineKeyboardButton("📁 ارسال فایل HCML", callback_data="send_file")]
+            InlineKeyboardButton("🗑 پاک کردن", callback_data="clear"),
+            InlineKeyboardButton("📁 ارسال فایل HCML", callback_data="send_file")
+        ]
     ])
 
     context.user_data['last_output_raw'] = result
     context.user_data['last_output_path'] = save_output(result)
 
-    await update.message.reply_text(output_text, reply_markup=keyboard)
+    await update.message.reply_text(
+        output_message,
+        reply_markup=keyboard,
+        parse_mode=ParseMode.MARKDOWN
+    )
 
 # ─── دکمه‌ها ──────────────────────────────────────────────
 
@@ -195,10 +212,6 @@ async def button_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
                 )
         else:
             await query.answer("❌ فایلی برای ارسال پیدا نشد!", show_alert=True)
-
-    elif query.data == "copy":
-        text = context.user_data.get('last_output_raw', '')
-        await query.answer(f"✅ متن آماده کپی:\n\n{text[:200]}...", show_alert=True)
 
 # ─── اجرا ─────────────────────────────────────────────────
 
