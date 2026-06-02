@@ -66,16 +66,34 @@ def save_output(content: str) -> str:
 # ─── دستورات ربات ────────────────────────────────────────────
 
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    await update.message.reply_text(
-        "✨ **به ربات HCML خوش اومدی!** ✨\n\n"
-        "من یه پستچی ساده‌ام. متن یا فایل رو می‌گیرم، می‌دم به ماشین رمزنگار و نتیجه رو برمی‌گردونم.\n\n"
-        "📝 **روش استفاده:**\n"
-        "• `<E>متن</E>` ← رمزنگاری\n"
-        "• `<D>متن</D>` ← رمزگشایی\n"
-        "• فایل متنی هم می‌تونی بفرستی\n\n"
-        "📚 /help | 💡 /example | 📊 /status",
-        parse_mode=ParseMode.MARKDOWN
-    )
+    # اول عکس رو بفرست
+    if os.path.exists(INTRO_IMAGE):
+        with open(INTRO_IMAGE, 'rb') as img:
+            await update.message.reply_photo(
+                photo=img,
+                caption=(
+                    "✨ **به ربات HCML خوش اومدی!** ✨\n\n"
+                    "من یه پستچی ساده‌ام. متن یا فایل رو می‌گیرم، می‌دم به ماشین رمزنگار و نتیجه رو برمی‌گردونم.\n\n"
+                    "📝 **روش استفاده:**\n"
+                    "• `<E>متن</E>` ← رمزنگاری\n"
+                    "• `<D>متن</D>` ← رمزگشایی\n"
+                    "• فایل متنی هم می‌تونی بفرستی\n\n"
+                    "📚 /help | 💡 /example | 📊 /status"
+                ),
+                parse_mode=ParseMode.MARKDOWN
+            )
+    else:
+        # اگه عکس نبود، فقط متن رو بفرست (مثل قبل)
+        await update.message.reply_text(
+            "✨ **به ربات HCML خوش اومدی!** ✨\n\n"
+            "من یه پستچی ساده‌ام. متن یا فایل رو می‌گیرم، می‌دم به ماشین رمزنگار و نتیجه رو برمی‌گردونم.\n\n"
+            "📝 **روش استفاده:**\n"
+            "• `<E>متن</E>` ← رمزنگاری\n"
+            "• `<D>متن</D>` ← رمزگشایی\n"
+            "• فایل متنی هم می‌تونی بفرستی\n\n"
+            "📚 /help | 💡 /example | 📊 /status",
+            parse_mode=ParseMode.MARKDOWN
+        )
 
 async def help_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
     await update.message.reply_text(
@@ -168,12 +186,12 @@ async def send_result(update: Update, context: ContextTypes.DEFAULT_TYPE, result
         output_message = (
             f"**<hcml>**\n"
             f"`{result}`\n"
-            f"**</hcml>**\n"
+            f"**</hcml>**\n\n"
             f" {date_str} | {weekday} | {time_str}"
         )
     else:
         # خروجی رمزگشایی شده یا عادی
-        output_message = f"**<hcml>**\n`{result}`\n</hcml>\n {date_str} | {weekday} | {time_str}"
+        output_message = f"**<hcml>**\n`{result}`\n</hcml>\n\n {date_str} | {weekday} | {time_str}"
 
     # دکمه‌ها (فقط پاک کردن و ارسال فایل - بدون کپی)
     keyboard = InlineKeyboardMarkup([
