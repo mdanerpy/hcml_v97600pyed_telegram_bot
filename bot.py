@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-# HCML Telegram Bot - نسخه نهایی بدون مشکل ایمپورت
+# HCML Telegram Bot - پستچی ساده و وظیفه‌شناس
 
 import os
 import sys
@@ -15,7 +15,7 @@ if not TOKEN:
     print("❌ BOT_TOKEN تنظیم نشده")
     sys.exit(1)
 
-# کتابخونه‌های اصلی
+# ایمپورت کتابخونه‌ها
 try:
     from hcml_core import load_chinese_chars
     from hcml_processor import HCMLProcessor
@@ -65,7 +65,7 @@ def save_output(content: str) -> str:
 
 # ─── دستورات ربات ────────────────────────────────────────────
 
-async def start(update: Update, context):
+async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     await update.message.reply_text(
         "✨ **به ربات HCML خوش اومدی!** ✨\n\n"
         "من یه پستچی ساده‌ام. متن یا فایل رو می‌گیرم، می‌دم به ماشین رمزنگار و نتیجه رو برمی‌گردونم.\n\n"
@@ -77,7 +77,7 @@ async def start(update: Update, context):
         parse_mode=ParseMode.MARKDOWN
     )
 
-async def help_command(update: Update, context):
+async def help_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
     await update.message.reply_text(
         "📖 **راهنما**\n\n"
         "`<E>متن</E>` = رمزنگاری\n"
@@ -87,7 +87,7 @@ async def help_command(update: Update, context):
         parse_mode=ParseMode.MARKDOWN
     )
 
-async def example_command(update: Update, context):
+async def example_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
     await update.message.reply_text(
         "💡 **مثال‌ها:**\n\n"
         "`<E>سلام دنیا</E>`\n"
@@ -96,7 +96,7 @@ async def example_command(update: Update, context):
         parse_mode=ParseMode.MARKDOWN
     )
 
-async def status_command(update: Update, context):
+async def status_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
     await update.message.reply_text(
         f"📊 **وضعیت**\n\n"
         f"✅ ربات فعال\n"
@@ -105,7 +105,7 @@ async def status_command(update: Update, context):
 
 # ─── مدیریت پیام و فایل (پستچی ساده) ─────────────────────
 
-async def handle_text(update: Update, context):
+async def handle_text(update: Update, context: ContextTypes.DEFAULT_TYPE):
     try:
         user_text = update.message.text
         if not user_text:
@@ -118,14 +118,15 @@ async def handle_text(update: Update, context):
 
         print(f"📤 نتیجه: {result[:80]}...")
 
-        await send_result(update, result)
+        # حالا context رو هم پاس می‌دیم
+        await send_result(update, context, result)
 
     except Exception as e:
         print(f"❌ خطا در handle_text: {e}")
         traceback.print_exc()
         await update.message.reply_text("❌ یه مشکلی پیش اومد. لطفاً دوباره تلاش کن.")
 
-async def handle_file(update: Update, context):
+async def handle_file(update: Update, context: ContextTypes.DEFAULT_TYPE):
     try:
         doc = update.message.document
         if not doc:
@@ -144,16 +145,16 @@ async def handle_file(update: Update, context):
 
         result = processor.process(text)
 
-        await send_result(update, result)
+        await send_result(update, context, result)
 
     except Exception as e:
         print(f"❌ خطا در handle_file: {e}")
         traceback.print_exc()
         await update.message.reply_text("❌ یه مشکلی در خوندن فایل پیش اومد.")
 
-# ─── فرمت‌بندی و ارسال نتیجه ─────────────────────────────
+# ─── فرمت‌بندی و ارسال نتیجه (context رو اینجا اضافه کردم) ─
 
-async def send_result(update: Update, result: str):
+async def send_result(update: Update, context: ContextTypes.DEFAULT_TYPE, result: str):
     now = datetime.now()
     date_str = now.strftime("%Y/%m/%d")
     weekday_list = ["دوشنبه", "سه‌شنبه", "چهارشنبه", "پنج‌شنبه", "جمعه", "شنبه", "یک‌شنبه"]
@@ -177,7 +178,7 @@ async def send_result(update: Update, result: str):
 
 # ─── دکمه‌ها ──────────────────────────────────────────────
 
-async def button_callback(update: Update, context):
+async def button_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
     query = update.callback_query
     await query.answer()
 
