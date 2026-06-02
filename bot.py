@@ -73,13 +73,27 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
             await update.message.reply_photo(
                 photo=img,
                 caption=(
-                    "✨ **به ربات HCML خوش اومدی!** ✨\n\n"
-                    "من یه پستچی ساده‌ام. متن یا فایل رو می‌گیرم، می‌دم به ماشین رمزنگار و نتیجه رو برمی‌گردونم.\n\n"
-                    "📝 **روش استفاده:**\n"
-                    "• `<E>متن</E>` ← رمزنگاری\n"
-                    "• `<D>متن</D>` ← رمزگشایی\n"
-                    "• فایل متنی هم می‌تونی بفرستی\n\n"
-                    "📚 /help | 💡 /example | 📊 /status"
+                    ✨ **به HCML Bot خوش اومدی!** ✨
+
+                    🔐 **HCML (Hanzi Cipher Markup Language)** یک زبان رمزنگاری متنی مبتنی بر کاراکترهای چینی است که امکان رمزنگاری و رمزگشایی متن و فایل‌ها را با تنظیمات قابل شخصی‌سازی فراهم می‌کند.
+
+                    🤖 این ربات فقط رابط کاربری موتور HCML است:
+                    پیام یا فایل را دریافت می‌کند، به موتور پردازش HCML ارسال می‌کند و نتیجه را به شما برمی‌گرداند.
+
+                    📝 **شروع سریع:**
+                    • `<E>متن شما</E>` → رمزنگاری
+                    • `<D>متن رمز</D>` → رمزگشایی
+                    • ارسال فایل‌های متنی برای پردازش مستقیم
+                    
+                    ⚡ **ویژگی‌ها:**
+                    • پشتیبانی از کلیدهای سفارشی (Key)
+                    • پشتیبانی از فایل‌های متنی مختلف
+                    • خروجی قابل کپی با یک لمس
+                    • امکان دریافت خروجی به صورت فایل HCML
+                    • استفاده از تا 97,600 کاراکتر چینی برای تولید رمز
+                    
+                    📚 /help | 💡 /example | 📊 /status
+
                 ),
                 parse_mode=ParseMode.MARKDOWN
             )
@@ -98,29 +112,59 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
 async def help_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
     await update.message.reply_text(
-        "📖 **راهنما**\n\n"
-        "`<E>متن</E>` = رمزنگاری\n"
-        "`<D>متن</D>` = رمزگشایی\n\n"
-        "با پارامتر:\n"
-        "`<E key=123 mode=\"#\">متن</E>`",
+        "📖 **راهنمای HCML**\n\n"
+        "🔐 **تگ‌های اصلی:**\n"
+        "`<E>متن</E>` → رمزنگاری\n"
+        "`<D>متن</D>` → رمزگشایی\n\n"
+        "⚙️ **پارامترهای پرکاربرد:**\n"
+        "`key=123` → کلید رمز\n"
+        "`count=5000` → تعداد کاراکترهای مورد استفاده\n"
+        "`way=\"+\"` → ترتیب چیدمان کاراکترها\n"
+        "`mode=\"#\"` → فقط خروجی رمز\n"
+        "`mode=\"!\"` → کلید تصادفی\n"
+        "`class=\"name\"` → استفاده از کلاس ذخیره‌شده\n\n"
+        "📝 **نمونه:**\n"
+        "`<E key=123 mode=\"#\">سلام دنیا</E>`\n\n"
+        "📂 فایل‌های متنی نیز قابل پردازش هستند.\n\n"
+        "💡 برای مشاهده مثال‌های بیشتر از دستور /example استفاده کنید.",
         parse_mode=ParseMode.MARKDOWN
     )
+
 
 async def example_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
     await update.message.reply_text(
-        "💡 **مثال‌ها:**\n\n"
-        "`<E>سلام دنیا</E>`\n"
-        "`<E key=42>متن مخفی</E>`\n"
-        "`<E mode=\"#\">فقط خروجی</E>`",
+        "💡 **نمونه‌های HCML**\n\n"
+        "🔐 رمزنگاری ساده:\n"
+        "`<E>سلام دنیا</E>`\n\n"
+        "🔑 رمزنگاری با کلید:\n"
+        "`<E key=42>متن مخفی</E>`\n\n"
+        "📤 فقط خروجی رمز:\n"
+        "`<E mode=\"#\">متن من</E>`\n\n"
+        "🎲 کلید تصادفی:\n"
+        "`<E mode=\"!\">پیام محرمانه</E>`\n\n"
+        "📚 استفاده از کلاس:\n"
+        "`<E class=\"mycipher\">متن</E>`\n\n"
+        "⚙️ تنظیم تعداد کاراکترها:\n"
+        "`<E key=123 count=5000>متن</E>`\n\n"
+        "🔓 رمزگشایی:\n"
+        "`<D>متن رمز شده</D>`\n\n"
+        "📂 همچنین می‌توانید فایل‌های متنی را مستقیماً ارسال کنید.",
         parse_mode=ParseMode.MARKDOWN
     )
 
+
 async def status_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
     await update.message.reply_text(
-        f"📊 **وضعیت**\n\n"
-        f"✅ ربات فعال\n"
-        f"📚 کاراکترهای چینی: {len(chinese_chars):,}"
+        f"📊 **HCML Engine Status**\n\n"
+        f"🟢 وضعیت ربات: آنلاین\n"
+        f"🔐 موتور رمزنگاری: فعال\n"
+        f"📚 کاراکترهای چینی: {len(chinese_chars):,}\n"
+        f"🏷️ نسخه: HCML v97600\n"
+        f"🐍 Runtime: Python\n"
+        f"⚡ آماده پردازش متن و فایل\n\n"
+        f"🚀 All Systems Operational"
     )
+
 
 # ─── مدیریت پیام و فایل (پستچی ساده) ─────────────────────
 
