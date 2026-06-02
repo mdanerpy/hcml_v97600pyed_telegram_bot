@@ -47,10 +47,66 @@ async def start(update: Update, context):
         "می‌توانید:\n"
         "• متن حاوی `<E>` یا `<D>` بفرستید\n"
         "• فایل متنی بفرستید\n\n"
-        "من متن رو پردازش می‌کنم و نتیجه رو برمی‌گردونم.",
+        "📚 راهنما: /help\n"
+        "💡 مثال: /example\n"
+        "📊 وضعیت: /status",
         parse_mode=ParseMode.MARKDOWN,
         reply_markup=InlineKeyboardMarkup(keyboard)
     )
+
+async def help_command(update: Update, context):
+    help_text = """📖 **راهنمای HCML**
+
+**رمزنگاری:**
+`<E>متن شما</E>`
+
+**رمزگشایی:**
+`<D>کاراکترهای چینی</D>`
+
+**پارامترها:**
+• `key=123` - کلید رمز
+• `way="-"` - روش چیدمان
+• `count=5000` - تعداد کاراکترها
+• `class="name"` - کلاس ذخیره شده
+• `mode="#"` - فقط خروجی
+
+**مثال:**
+`<E key=42 way="-" mode="#">متن مخفی</E>`
+
+می‌توانید فایل‌های `.txt`، `.json`، `.py` و... را هم ارسال کنید."""
+    await update.message.reply_text(help_text, parse_mode=ParseMode.MARKDOWN)
+
+async def example_command(update: Update, context):
+    examples = """💡 **مثال‌ها:**
+
+1. رمزنگاری ساده:
+`<E>سلام دنیا</E>`
+
+2. رمزنگاری با کلید:
+`<E key=123>متن مخفی</E>`
+
+3. رمزگشایی:
+`<D>䷀䷁䷂䷃䷄䷅䷆䷇䷈䷉</D>`
+
+4. با کلاس:
+`<E class="secret" key=42>پیام محرمانه</E>`
+
+5. حالت فقط خروجی:
+`<E mode="#">بدون تگ خروجی</E>`
+
+کافیست یکی از مثال‌ها را کپی کرده و ارسال کنید."""
+    await update.message.reply_text(examples, parse_mode=ParseMode.MARKDOWN)
+
+async def status_command(update: Update, context):
+    status_text = f"""📊 **وضعیت سیستم**
+
+✅ وضعیت: فعال
+📚 کاراکترهای چینی: {len(chinese_chars):,}
+🗂 فایل کلاس‌ها: موجود
+
+📝 راهنمای استفاده: /help
+💡 مثال: /example"""
+    await update.message.reply_text(status_text, parse_mode=ParseMode.MARKDOWN)
 
 async def handle_text(update: Update, context):
     text = update.message.text
@@ -61,7 +117,7 @@ async def handle_text(update: Update, context):
     result = processor.process(text)
     
     if result == text:
-        await update.message.reply_text("❌ تگ `<E>` یا `<D>` پیدا نشد.")
+        await update.message.reply_text("❌ تگ `<E>` یا `<D>` پیدا نشد.\nبرای راهنما /help")
         return
     
     # نمایش نتیجه ساده
@@ -146,7 +202,6 @@ async def button_callback(update: Update, context):
                 )
     
     elif data.startswith("copy_"):
-        # فقط تایید کپی - کاربر خودش کپی می‌کنه
         await query.answer("✅ متن آماده کپی است!", show_alert=True)
     
     elif data == "help":
@@ -162,30 +217,18 @@ async def button_callback(update: Update, context):
 • `key=123` - کلید رمز
 • `way="-"` - روش چیدمان
 • `count=5000` - تعداد کاراکترها
-• `class="name"` - کلاس ذخیره شده
-• `mode="#"` - فقط خروجی
 
 **مثال:**
-`<E key=42 way="-" mode="#">متن مخفی</E>`
-
-می‌توانید فایل‌های `.txt`، `.json`، `.py` و... را هم ارسال کنید."""
+`<E key=42 way="-">متن مخفی</E>`"""
         await query.edit_message_text(help_text, parse_mode=ParseMode.MARKDOWN)
-
-async def help_command(update: Update, context):
-    help_text = """📖 **راهنمای HCML**
-
-`<E>متن</E>` - رمزنگاری
-`<D>متن</D>` - رمزگشایی
-`<E key=123>متن</E>` - با کلید
-
-فایل‌های متنی هم می‌توانید بفرستید."""
-    await update.message.reply_text(help_text, parse_mode=ParseMode.MARKDOWN)
 
 def main():
     app = Application.builder().token(TOKEN).build()
     
     app.add_handler(CommandHandler("start", start))
     app.add_handler(CommandHandler("help", help_command))
+    app.add_handler(CommandHandler("example", example_command))
+    app.add_handler(CommandHandler("status", status_command))
     app.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, handle_text))
     app.add_handler(MessageHandler(filters.Document.ALL, handle_file))
     app.add_handler(CallbackQueryHandler(button_callback))
