@@ -1,247 +1,182 @@
-# hcml_parser.py
-# Parses <E ...> and <D ...> tags and their attributes.
+#!/usr/bin/env python3
+# HCML Telegram Bot - با گزارش خطای کامل برای پیدا کردن مشکل
 
-import re
+import os
+import sys
+import tempfile
+import traceback
+from datetime import datetime
 
-# ─── Default attribute values ─────────────────────────────────────────────────
-DEFAULTS = {
-    "class":  "",
-    "count":  3000,
-    "key":    0,
-    "way":    "+",
-    "mode":   "",
-    "tokens": ["{", "}"],
-}
+BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+sys.path.insert(0, BASE_DIR)
 
+TOKEN = os.environ.get("BOT_TOKEN")
+if not TOKEN:
+    print("❌ خطا: BOT_TOKEN تنظیم نشده.")
+    sys.exit(1)
 
-def parse_count(raw: str):
-    raw = raw.strip()
-    if ":" in raw:
-        parts = raw.split(":", 1)
-        try:
-            return (int(parts[0]), int(parts[1]))
-        except ValueError:
-            return DEFAULTS["count"]
+# ایمپورت با گزارش خطای واضح
+try:
+    from hcml_core import load_chinese_chars
+    from hcml_processor import HCMLProcessor
+    from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup
+    from telegram.ext import Application, CommandHandler, MessageHandler, CallbackQueryHandler, filters, ContextTypes
+    from telegram.constants import ParseMode
+    print("✅ همه کتابخونه‌ها با موفقیت ایمپورت شدن.")
+except Exception as e:
+    print(f"❌ خطای ایمپورت: {e}")
+    traceback.print_exc()
+    sys.exit(1)
+
+# بارگذاری کاراکترها
+try:
+    char_path = os.path.join(BASE_DIR, "Characters_Chinese_97600.txt")
+    print(f"📂 درحال لود کردن فایل کاراکترها از: {char_path}")
+    with open(char_path, "r", encoding="utf-8") as f:
+        chinese_chars = [c for c in f.read() if c.strip()]
+    print(f"✅ {len(chinese_chars)} کاراکتر با موفقیت لود شد.")
+except Exception as e:
+    print(f"❌ خطا توی لود فایل کاراکترها: {e}")
+    traceback.print_exc()
+    sys.exit(1)
+
+# ایجاد پردازشگر
+try:
+    processor = HCMLProcessor(chinese_chars)
+    print("✅ پردازشگر HCML آماده شد.")
+except Exception as e:
+    print(f"❌ خطا توی ساختن پردازشگر: {e}")
+    traceback.print_exc()
+    sys.exit(1)
+
+TEXT_EXTENSIONS = {'.txt', '.json', '.xml', '.html', '.htm', '.js', '.ts', '.css', '.scss', '.py', '.csv', '.yaml', '.yml', '.ini', '.cfg', '.md', '.log', '.sql', '.hcml'}
+
+def save_output(content: str) -> str:
+    fd, path = tempfile.mkstemp(suffix=".hcml", text=True)
+    with os.fdopen(fd, 'w', encoding='utf-8') as f:
+        f.write(content)
+    return path
+
+# --- هندلرهای ربات ---
+
+async def start(update: Update, context):
+    await update.message.reply_text(
+        "✨ به ربات HCML خوش اومدی! ✨\n\n"
+        "من یه پستچی ساده‌ام. متن یا فایلت رو می‌گیرم، می‌دم به ماشین رمزنگار و نتیجه رو برات می‌آرم.\n\n"
+        "📝 **روش استفاده:**\n"
+        "• `<E>متن</E>` برای رمزنگاری\n"
+        "• `<D>متن</D>` برای رمزگشایی\n"
+        "• فایل متنی هم می‌تونی بفرستی.\n\n"
+        "/help - راهنمای سریع\n"
+        "/example - چند مثال\n"
+        "/status - وضعیت سیستم"
+    )
+
+async def help_command(update: Update, context):
+    await update.message.reply_text(
+        "📖 `<E>متن</E>` = رمزنگاری\n"
+        "`<D>متن</D>` = رمزگشایی\n"
+        "با پارامتر: `<E key=123 mode=\"#\">متن</E>`"
+    )
+
+async def example_command(update: Update, context):
+    await update.message.reply_text(
+        "💡 مثال:\n`<E>سلام دنیا</E>`\n`<E key=42>متن مخفی</E>`"
+    )
+
+async def status_command(update: Update, context):
+    await update.message.reply_text(f"📊 فعال | {len(chinese_chars):,} کاراکتر")
+
+async def handle_text(update: Update, context):
     try:
-        return int(raw)
-    except ValueError:
-        return DEFAULTS["count"]
+        user_text = update.message.text
+        print(f"📩 پیام دریافت شد: {user_text[:50]}...") # لاگ توی Action
+        
+        # پردازش مستقیم
+        result = processor.process(user_text)
+        print(f"📤 نتیجه پردازش: {result[:50]}...") # لاگ توی Action
+        
+        await send_result(update, result)
+    except Exception as e:
+        print(f"❌ خطا توی handle_text: {e}")
+        traceback.print_exc()
+        # به کاربر هم بگو خطا رخ داد
+        await update.message.reply_text("❌ یه مشکلی پیش اومد. ادمین داره بررسی می‌کنه.")
 
-
-def parse_key(raw: str):
-    raw = raw.strip()
+async def handle_file(update: Update, context):
     try:
-        return int(raw)
-    except ValueError:
-        return DEFAULTS["key"]
+        doc = update.message.document
+        if not doc: return
 
+        ext = os.path.splitext(doc.file_name)[1].lower()
+        if ext not in TEXT_EXTENSIONS:
+            await update.message.reply_text(f"❌ پسوند {ext} پشتیبانی نمی‌شه.")
+            return
 
-def parse_tokens(raw: str) -> list:
-    raw = raw.strip()
-    found = re.findall(r'"([^"]*)"', raw)
-    if not found:
-        found = re.findall(r"'([^']*)'", raw)
-    return found
+        file = await doc.get_file()
+        file_content = await file.download_as_bytearray()
+        text = file_content.decode('utf-8')
+        
+        result = processor.process(text)
+        await send_result(update, result)
+    except Exception as e:
+        print(f"❌ خطا توی handle_file: {e}")
+        traceback.print_exc()
+        await update.message.reply_text("❌ یه مشکلی موقع خوندن فایل پیش اومد.")
 
+async def send_result(update: Update, result: str):
+    """فرمت‌بندی و ارسال نتیجه نهایی"""
+    now = datetime.now()
+    date_str = now.strftime("%Y/%m/%d")
+    weekday = ["دوشنبه", "سه‌شنبه", "چهارشنبه", "پنج‌شنبه", "جمعه", "شنبه", "یک‌شنبه"][now.weekday()]
+    time_str = now.strftime("%H:%M")
 
-def _extract_raw_attrs(tag_inner: str) -> dict:
-    """
-    Extract attr=value pairs from tag interior.
-    Attr must be preceded by whitespace (or start of string).
-    Supports: attr="val", attr='val', attr=[...]
-    Returns dict with last-value-wins for duplicates.
-    """
-    raw = {}
-    # We build the pattern as bytes-like string to avoid quoting hell
-    # Pattern: (whitespace or ^)(word)(=)("..." or '...' or [...])
-    i = 0
-    n = len(tag_inner)
+    output_text = f"{result}\n\n📅 {date_str} | {weekday} | 🕐 {time_str}"
 
-    while i < n:
-        # Skip whitespace
-        while i < n and tag_inner[i] in ' \t\n\r':
-            i += 1
-        if i >= n:
-            break
+    keyboard = InlineKeyboardMarkup([
+        [InlineKeyboardButton("📋 کپی متن", callback_data="copy"),
+         InlineKeyboardButton("🗑 پاک کردن", callback_data="clear")],
+        [InlineKeyboardButton("📁 ارسال فایل HCML", callback_data="send_file")]
+    ])
 
-        # Try to read a word (attr name candidate)
-        if not (tag_inner[i].isalpha() or tag_inner[i] == '_'):
-            i += 1
-            continue
+    context.user_data['last_output_raw'] = result
+    context.user_data['last_output_path'] = save_output(result)
+    
+    await update.message.reply_text(output_text, reply_markup=keyboard)
 
-        word_start = i
-        while i < n and (tag_inner[i].isalnum() or tag_inner[i] == '_'):
-            i += 1
-        word = tag_inner[word_start:i]
+async def button_callback(update: Update, context):
+    query = update.callback_query
+    await query.answer()
+    
+    if query.data == "clear":
+        await query.message.delete()
+    elif query.data == "send_file":
+        path = context.user_data.get('last_output_path')
+        if path and os.path.exists(path):
+            with open(path, 'rb') as f:
+                await query.message.reply_document(document=f, filename=f"output.hcml")
+    elif query.data == "copy":
+        text = context.user_data.get('last_output_raw', '')
+        await query.answer(f"✅ متن:\n{text[:100]}...", show_alert=True)
 
-        # Skip optional spaces
-        while i < n and tag_inner[i] in ' \t':
-            i += 1
+# --- اجرا ---
+def main():
+    try:
+        app = Application.builder().token(TOKEN).build()
+        
+        app.add_handler(CommandHandler("start", start))
+        app.add_handler(CommandHandler("help", help_command))
+        app.add_handler(CommandHandler("example", example_command))
+        app.add_handler(CommandHandler("status", status_command))
+        app.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, handle_text))
+        app.add_handler(MessageHandler(filters.Document.ALL, handle_file))
+        app.add_handler(CallbackQueryHandler(button_callback))
+        
+        print("🚀 ربات داره شروع به کار می‌کنه...")
+        app.run_polling()
+    except Exception as e:
+        print(f"❌ خطای کلی توی اجرای ربات: {e}")
+        traceback.print_exc()
 
-        # Must be followed by =
-        if i >= n or tag_inner[i] != '=':
-            # Not attr=value — skip; but don't advance too far
-            continue
-
-        i += 1  # skip =
-
-        # Skip optional spaces after =
-        while i < n and tag_inner[i] in ' \t':
-            i += 1
-
-        if i >= n:
-            break
-
-        # Read value: "...", '...', or [...]
-        ch = tag_inner[i]
-        if ch == '"':
-            i += 1
-            val_start = i
-            while i < n and tag_inner[i] != '"':
-                i += 1
-            val = tag_inner[val_start:i]
-            if i < n:
-                i += 1  # skip closing "
-            raw[word] = val
-
-        elif ch == "'":
-            i += 1
-            val_start = i
-            while i < n and tag_inner[i] != "'":
-                i += 1
-            val = tag_inner[val_start:i]
-            if i < n:
-                i += 1
-            raw[word] = val
-
-        elif ch == '[':
-            bracket_start = i
-            depth = 0
-            while i < n:
-                if tag_inner[i] == '[':
-                    depth += 1
-                elif tag_inner[i] == ']':
-                    depth -= 1
-                    if depth == 0:
-                        i += 1
-                        break
-                i += 1
-            raw[word] = tag_inner[bracket_start:i]
-
-        else:
-            # Unquoted value — not valid per spec, skip
-            pass
-
-    return raw
-
-
-def parse_attributes(tag_inner: str, classes: dict) -> tuple:
-    """
-    Parse tag interior, return (attrs_dict, class_name).
-    """
-    raw_attrs = _extract_raw_attrs(tag_inner)
-
-    result = dict(DEFAULTS)
-
-    # Load class first
-    class_name = raw_attrs.get("class", "").strip()
-    if class_name:
-        result["class"] = class_name
-        if class_name in classes:
-            for k, v in classes[class_name].items():
-                result[k] = v
-
-    # Apply explicit attrs (override class)
-    for attr_name, val_str in raw_attrs.items():
-        if attr_name == "class":
-            continue
-        if attr_name == "count":
-            result["count"] = parse_count(val_str)
-        elif attr_name == "key":
-            result["key"] = parse_key(val_str)
-        elif attr_name == "way":
-            result["way"] = val_str.strip()
-        elif attr_name == "mode":
-            result["mode"] = val_str.strip()
-        elif attr_name == "tokens":
-            result["tokens"] = parse_tokens("[" + val_str + "]" if not val_str.startswith("[") else val_str)
-        # Unknown attrs silently ignored
-
-    # Handle mode="!" — randomize key
-    if result["mode"] == "!":
-        import random
-        result["key"] = random.randint(-(10**15), 10**15)
-
-    return result, class_name
-
-
-def is_valid_open_tag(text: str, pos: int):
-    """
-    Check if position pos starts a valid <E or <D tag.
-    Returns (tag_type, end_pos, inner_str) or None.
-    """
-    if pos >= len(text) or text[pos] != "<":
-        return None
-
-    i = pos + 1
-
-    if i >= len(text):
-        return None
-
-    # No / (not a closing tag)
-    if text[i] == "/":
-        return None
-
-    # Must be E or D immediately
-    tag_letter = text[i].upper()
-    if tag_letter not in ("E", "D"):
-        return None
-
-    i += 1
-
-    # After E/D must be >, whitespace, or end — NOT another alnum char
-    if i < len(text) and (text[i].isalnum() or text[i] == '_'):
-        return None
-
-    # Scan for closing > (respecting quotes and brackets)
-    depth_bracket = 0
-    in_quote = None
-    j = i
-
-    while j < len(text):
-        c = text[j]
-        if in_quote:
-            if c == in_quote:
-                in_quote = None
-        elif c in ('"', "'"):
-            in_quote = c
-        elif c == "[":
-            depth_bracket += 1
-        elif c == "]":
-            depth_bracket -= 1
-        elif c == ">" and depth_bracket == 0:
-            inner = text[i:j]
-            end = j + 1
-            return (tag_letter, end, inner)
-        j += 1
-
-    return None
-
-
-def is_valid_close_tag(text: str, pos: int):
-    """
-    Check if position pos starts </E> or </D>.
-    Returns (tag_type, end_pos) or None.
-    """
-    if text[pos:pos+2] != "</":
-        return None
-    i = pos + 2
-    if i >= len(text):
-        return None
-    tag_letter = text[i].upper()
-    if tag_letter not in ("E", "D"):
-        return None
-    i += 1
-    if i < len(text) and text[i] == ">":
-        return (tag_letter, i + 1)
-    return None
+if __name__ == "__main__":
+    main()
